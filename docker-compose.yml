@@ -1,0 +1,44 @@
+version: '3'
+ 
+services:
+  db:
+    image: postgres
+    ports:
+            - 5432:5432
+    environment:
+            - POSTGRES_PASSWORD=postgres
+    volumes:
+            - ./db-data:/var/lib/postgresql/data
+    container_name: postgres
+ 
+  web:
+    restart: always
+    build: .
+    command: bash -c "python manage.py runserver 0.0.0.0:8000 && python manage.py migrate"
+    volumes:
+            - .:/code
+    ports:
+            - 8000:8000
+    depends_on:
+            - db
+    container_name: django
+ 
+  https-portal:
+    image: steveltn/https-portal:1
+    ports:
+            - 80:80
+            - 443:443
+    links:
+            - web
+    restart: always
+    environment:
+      DOMAINS: 'vccmarsh.link -> http://web:8000'
+      STAGE: 'staging'
+      #FORCE_RENEW: 'true'
+    container_name: https-portal
+    volumes:
+            - ./ssl_certs:/var/lib/https-portal
+ 
+volumes:
+    db-data:
+    ssl_certs:
